@@ -1,0 +1,6 @@
+#!/bin/bash
+# cl — pull latest sessions, run Claude (continues last session by default), push on exit
+~/.claude/bin/csync pull
+cd ~ || exit 1
+if [ $# -eq 0 ]; then claude --continue; else claude "$@"; fi
+~/.claude/bin/csync push

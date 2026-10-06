@@ -41,9 +41,22 @@ Claude Code itself inside the container.
    ```
    Follow its own login flow once; after that, every future `claude`
    session inside this container stays logged in.
-2. **Grant permissions** the first time Termux asks for them
+2. **Share conversation history + memory with your other phone**, via
+   the private [claude-sync](https://github.com/DarkPhilosopher/claude-sync)
+   repo — also tied to your account, so also yours to run:
+   ```
+   proot-distro login ubuntu -- gh auth login
+   proot-distro login ubuntu -- python3 /root/bin/claude-sync-setup/setup-claude-sync.py
+   ```
+   After that, `cl` (instead of plain `claude`) pulls the latest from
+   your other phone, resumes your last chat, and pushes back on exit.
+   Safe to run on a phone that already has its own real history too —
+   it merges rather than overwrites (this phone's own history wins on
+   the two small shared files, `history.jsonl`/`settings.json`; actual
+   conversations never collide, each one is its own file).
+3. **Grant permissions** the first time Termux asks for them
    (notifications, microphone, storage).
-3. **Reboot once**, to prove the boot-persistence path actually works.
+4. **Reboot once**, to prove the boot-persistence path actually works.
    Check it came up:
    ```
    proot-distro login ubuntu -- tmux -S /tmp/tmux-claude.sock attach -t claude
@@ -58,8 +71,10 @@ Claude Code itself inside the container.
 | `boot/start-claude.sh` | Termux:Boot entry point — starts the `claude` tmux session inside the container, leaves voice off, starts `memguard.sh`. Gets copied to `~/.termux/boot/start-claude.sh`. |
 | `voice/loop.sh`, `toggle.sh`, `notify.sh` | Optional: a pinned notification that toggles continuous speech-to-text, forwarding anything that mentions "claude" into the running session. Get copied to `~/.termux-voice/`. Off by default — run `~/.termux-voice/toggle.sh` to turn it on. |
 | `bashrc-claude-guard.sh` | The `claude()` function `install.sh` appends to `.bashrc` — warns before starting a second session (more than one at once can push the phone into heavy swap and freeze Termux). |
-| `proot/setup-claude-code.sh` | Runs *inside* the Ubuntu container — installs Node (NodeSource) and `@anthropic-ai/claude-code`, writes `claude-session.sh` into `/root/bin/`. |
+| `proot/setup-claude-code.sh` | Runs *inside* the Ubuntu container — installs Node (NodeSource), `gh`, and `@anthropic-ai/claude-code`; writes `claude-session.sh` into `/root/bin/`, and `setup-claude-sync.py`/`cl`/`csync` into `/root/bin/claude-sync-setup/` for later. |
 | `proot/claude-session.sh` | Idempotent — ensures a tmux session named `claude` is running Claude Code inside the container. What the boot script and the notification's "Ensure Claude Running" button both call. |
+| `proot/setup-claude-sync.py` | Run by hand, after `gh auth login` — wires `~/.claude` up to the shared `claude-sync` repo (conversations, memory, prompt history, settings; never credentials). Merges rather than overwrites if this phone already has its own history. Idempotent. |
+| `proot/cl`, `proot/csync` | The sync tools themselves, copied in by `setup-claude-sync.py`. `cl` = pull, `claude --continue` (or pass-through args), push. `csync pull`/`push` on their own. |
 
 ## Why Termux:Boot starts a tmux session instead of `claude` directly
 
@@ -70,12 +85,15 @@ after the boot script itself has exited, and `proot-distro login ubuntu
 -- tmux -S /tmp/tmux-claude.sock attach -t claude` reaches it any time
 afterward.
 
-## Memory and work from other sessions
+## Memory, conversation history, and your other repos
 
-This only sets the software up — it does **not** carry over any of the
-A17's own Claude memory, conversation history, or GitHub repos (those
-live in `~/bin` → [termux-bin](https://github.com/DarkPhilosopher/termux-bin)
-and a separate, private
-[claude-memory](https://github.com/DarkPhilosopher/claude-memory) repo).
-Once Claude Code is running here, point it at those same repos to get
-the rest of your Termux toolkit in sync.
+`install.sh` only sets the *software* up. Step 2 above
+(`setup-claude-sync.py`) is what actually carries over conversation
+history and memory from your other phone, via
+[claude-sync](https://github.com/DarkPhilosopher/claude-sync) (private).
+
+Your actual Termux *programs* (`overseer`, `programs`, etc.) are a
+separate thing, in a separate repo — `~/bin` →
+[termux-bin](https://github.com/DarkPhilosopher/termux-bin). Once
+Claude Code is running here, clone that one too to get the rest of
+your toolkit.

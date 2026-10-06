@@ -1,0 +1,17 @@
+#!/bin/bash
+# csync pull | push — sync ~/.claude sessions with GitHub
+set -u
+cd ~/.claude || exit 1
+case "${1:-}" in
+  pull)
+    git add -A && git commit -qm "auto: $(hostname) $(date '+%F %T')" 2>/dev/null
+    # local edits win if both phones touched the same session
+    git pull -q --rebase -X theirs || { echo "csync: pull failed (offline?) — using local copy"; git rebase --abort 2>/dev/null; }
+    ;;
+  push)
+    git add -A && git commit -qm "auto: $(hostname) $(date '+%F %T')" 2>/dev/null
+    git pull -q --rebase -X theirs 2>/dev/null
+    git push -q || echo "csync: push failed (offline?) — will push next time"
+    ;;
+  *) echo "usage: csync pull|push"; exit 1 ;;
+esac
