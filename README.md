@@ -54,6 +54,12 @@ Claude Code itself inside the container.
    it merges rather than overwrites (this phone's own history wins on
    the two small shared files, `history.jsonl`/`settings.json`; actual
    conversations never collide, each one is its own file).
+
+   This step also starts `csync-auto.py` running in the background —
+   pushes every 5 minutes on its own, so you don't have to remember
+   `cl`/`csync` at all for your changes to reach GitHub. It's
+   idempotent and started again at every boot alongside Claude Code
+   itself, so there's nothing further to do here.
 3. **Grant permissions** the first time Termux asks for them
    (notifications, microphone, storage).
 4. **Reboot once**, to prove the boot-persistence path actually works.
@@ -75,6 +81,7 @@ Claude Code itself inside the container.
 | `proot/claude-session.sh` | Idempotent — ensures a tmux session named `claude` is running Claude Code inside the container. What the boot script and the notification's "Ensure Claude Running" button both call. |
 | `proot/setup-claude-sync.py` | Run by hand, after `gh auth login` — wires `~/.claude` up to the shared `claude-sync` repo (conversations, memory, prompt history, settings; never credentials). Merges rather than overwrites if this phone already has its own history. Idempotent. |
 | `proot/cl`, `proot/csync` | The sync tools themselves, copied in by `setup-claude-sync.py`. `cl` = pull, `claude --continue` (or pass-through args), push. `csync pull`/`push` on their own. |
+| `proot/csync-auto.py` | Runs `csync push` every 5 minutes, forever -- same shape as `memguard.sh`. Started by `setup-claude-sync.py` right away, and by `claude-session.sh` at every boot. |
 
 ## Why Termux:Boot starts a tmux session instead of `claude` directly
 
