@@ -28,7 +28,7 @@ chmod +x /root/bin/claude-session.sh
 # reachable later with no repo folder needed.
 mkdir -p /root/bin/claude-sync-setup
 cp "$(dirname "$0")/setup-claude-sync.py" /root/bin/claude-sync-setup/
-cp "$(dirname "$0")/cl" "$(dirname "$0")/csync" /root/bin/claude-sync-setup/
+cp "$(dirname "$0")/cl" "$(dirname "$0")/csync" "$(dirname "$0")/csync-auto.py" /root/bin/claude-sync-setup/
 chmod +x /root/bin/claude-sync-setup/*.py /root/bin/claude-sync-setup/cl /root/bin/claude-sync-setup/csync
 
 echo "node $(node --version), npm $(npm --version)"

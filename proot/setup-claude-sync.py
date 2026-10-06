@@ -76,11 +76,28 @@ def unnest_any_memory_git():
         print("  folded %s's own git history into this one" % folder)
 
 
+def start_csync_auto():
+    """Launches csync-auto.py in the background right now, same idempotent
+    "already running?" check claude-session.sh itself uses at boot -- so
+    auto-push starts immediately after setup instead of waiting for the
+    next reboot or session-ensure call."""
+    script = CLAUDE_DIR / "bin" / "csync-auto.py"
+    if not script.exists():
+        return
+    already = subprocess.run(["pgrep", "-f", "csync-auto.py"], capture_output=True)
+    if already.returncode == 0:
+        return
+    log = CLAUDE_DIR / "csync-auto.log"
+    with log.open("a") as f:
+        subprocess.Popen(["python3", str(script)], stdout=f, stderr=f,
+                          start_new_session=True)
+
+
 def write_bin_scripts():
     bin_dir = CLAUDE_DIR / "bin"
     bin_dir.mkdir(exist_ok=True)
     here = Path(__file__).resolve().parent
-    for name in ("cl", "csync"):
+    for name in ("cl", "csync", "csync-auto.py"):
         src = here / name
         if src.exists():
             shutil.copy(src, bin_dir / name)
@@ -97,6 +114,8 @@ def main():
         if "claude-sync" in remotes:
             print("Already set up -- ~/.claude is already tracking claude-sync.")
             run("git", "pull", "-q", check=False)
+            write_bin_scripts()  # pick up a newer csync-auto.py if one shipped
+            start_csync_auto()
             print("Pulled the latest. Use `cl` to continue your last chat.")
             return
         sys.exit("~/.claude is a git repo already, but not pointed at "
@@ -149,11 +168,15 @@ def main():
             print("  couldn't link %s onto PATH (%s) -- run it as "
                   "~/.claude/bin/%s instead" % (name, err, name))
 
+    start_csync_auto()
+
     print()
     print("Done. ~/.claude is now synced via claude-sync (private repo).")
     print("Use:  cl        continue your last chat, pulling/pushing automatically")
     print("      cl -r     pick a chat")
     print("      csync pull / csync push   the sync step on its own")
+    print("      csync-auto.py is now running in the background too --")
+    print("      pushes on its own timer, no need to remember any of the above.")
 
 
 if __name__ == "__main__":
